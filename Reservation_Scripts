@@ -1,0 +1,57 @@
+Question - The total number of nights reserved, by unitID, in periods of months. 
+          Solution Steps
+           1. Count length of reservations 
+           2. Group by UnitID and Month
+           
+    SELECT UnitID, MONTH(FirstNight), SUM(DATEDIFF(DAY, FirstNight, LastNight)) AS NightsRented
+    FROM reservation 
+    GROUP BY UnitID, MONTH(FirstNight)
+    ORDER BY UnitID DESC, MONTH(FirstNight) ASC
+    
+Question 2 - The total number of nights reserved over the total number of nights, by unitID, in periods of months. 
+        Solution Steps
+        1. Count length of reservation 
+        2. Divide by average days in a month 
+        3. Group by UnitId and Month
+        
+   WITH ReservedNights (UnitID, Month, NightsRented) AS
+   (SELECT UnitID, MONTH(FirstNight), SUM(DATEDIFF(DAY, FirstNight, LastNight)) AS NightsRented
+   FROM reservation 
+   GROUP BY UnitID, MONTH(FirstNight))
+   SELECT UnitID, Month, NightsRented / (365/12)
+   FROM ReservedNights
+   ORDER BY UnitID DESC, Month ASC     
+
+Question 3 - The total number of nights reserved, by unitID, in periods of months compared to the same period of the previous year. 
+        Solution Steps
+        1. Count length of reservation 
+        2. Create CTE in order to use window function 
+        3. Use window function to capture previous year's data
+
+  WITH ReservedNights (UnitID, Month, NightsRented) AS
+  (SELECT UnitID, MONTH(FirstNight), SUM(DATEDIFF(DAY, FirstNight, LastNight)) AS NightsRented
+  FROM reservation 
+  GROUP BY UnitID, MONTH(FirstNight))
+  SELECT UnitID, Month, NightsRented AS NightsRentedCY, LAG(NightsRented, 1) OVER (ORDER BY YEAR) AS NightsRentedPY
+  FROM ReservedNights
+  ORDER BY UnitID DESC, Month ASC
+
+Question 4 - The total number of nights reserved, by city-state, in periods of months compared to the same period of the previous year. 
+      Solution Steps
+      1. Join to unit table to caputure city state data 
+      2. Count length of reservation 
+      3. Create CTE in order to use window function 
+      4. Use window function to retrieve previous year's data
+
+  WITH ReservedNightsByCityState (City, State, NightsRented) as
+  (SELECT u.City, u.State,  SUM(DATEDIFF(DAY, r.FirstNight, r.LastNight)) as NightsRented
+  FROM reservation AS r
+  LEFT JOIN unit AS u
+    ON r.UnitID=u.UnitID
+  GROUP BY  u.state, u.city)
+  SELECT City, State, NightsRented as NightsRentedCY, LAG(NightsRented, 1) OVER (ORDER BY Year) as NightsRentedPY
+  FROM ReseveredNightsByCityState
+  ORDER BY State ASC, City ASC
+
+
+
